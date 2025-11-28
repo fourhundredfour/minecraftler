@@ -1,0 +1,61 @@
+name: Build and Push Minecraft Docker Image
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch latest Minecraft version
+        id: get-version
+        run: |
+          VERSIONS_RESPONSE=$(curl -s -H "User-Agent: Minecraftler/1.0.0" "https://api.papermc.io/v2/projects/paper")
+          LATEST_VERSION=$(echo "$VERSIONS_RESPONSE" | jq -r '.versions[-1]')
+
+          if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "null" ]; then
+            echo "Error: Could not fetch latest version"
+            echo "API Response: $VERSIONS_RESPONSE"
+            exit 1
+          fi
+
+          echo "Latest Minecraft version: $LATEST_VERSION"
+          echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/fourhundredfour/minecraftler
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ steps.get-version.outputs.version }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server_files
+          file: ./server_files/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          platforms: linux/amd64,linux/arm64
+
