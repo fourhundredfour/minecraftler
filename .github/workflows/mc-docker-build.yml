@@ -17,7 +17,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Fetch latest Minecraft version
-        id: get-version
         run: |
           VERSIONS_RESPONSE=$(curl -s -H "User-Agent: Minecraftler/1.0.0" "https://api.papermc.io/v2/projects/paper")
           LATEST_VERSION=$(echo "$VERSIONS_RESPONSE" | jq -r '.versions[-1]')
@@ -42,7 +41,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata
-        id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/fourhundredfour/minecraftler
