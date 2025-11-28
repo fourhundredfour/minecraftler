@@ -1,11 +1,12 @@
-FROM alpine/java:21-jre
+FROM eclipse-temurin:21-jre-alpine
 
 EXPOSE 25565
 
 WORKDIR /minecraft
 VOLUME ["/minecraft"]
 
-RUN adduser -D -u 1000 minecraft && \
+RUN addgroup -g 1000 minecraft && \
+    adduser -D -u 1000 -G minecraft minecraft && \
     mkdir -p /minecraft && \
     chown -R minecraft:minecraft /minecraft
 
